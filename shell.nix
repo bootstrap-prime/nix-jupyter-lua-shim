@@ -1,41 +1,68 @@
-{ pkgs ? import <nixpkgs> { } }:
-
-# based on https://github.com/bear5-lab/nixroot/blob/5b8d5a9382db048133479a87a61bccae8d69f03d/shells/jupyterWith/customized_shell.nix
+{ pkgs ? import <nixpkgs> { }, unstablepkgs ? import <nixos> {  } }:
 
 let
-  kernels = [ (pkgs.callPackage ./default.nix { }) pkgs.python310Packages.ilua ];
+  kernels = [ (pkgs.callPackage ./default.nix { })
+            ];
+  # additionalExtensions = [
+  #   "widgetsnbextension"
+  # ];
+
+  pythonEnv =
+    (pkgs.python3.withPackages (ps: with ps;[
+      jupyter
+      jupyterlab
+      importlib-metadata
+      numpy
+      scipy
+      matplotlib
+      ipywidgets
+      widgetsnbextension
+      jupyter_core
+      jupyterlab-widgets
+      numpy
+      pandas
+      ipympl
+    ]));
+  jupyterlab = pkgs.python310Packages.jupyterlab;
 in pkgs.mkShell rec {
   buildInputs = with pkgs.python310Packages; [
-    jupyterlab
-    importlib-metadata
-    numpy
-    scipy
-    matplotlib
-    # ilua
-    pkgs.lua
+    pythonEnv
+    # jupyterlab
+    # importlib-metadata
+    # numpy
+    # scipy
+    # matplotlib
+    # # ilua
+    pkgs.luajit
+    pkgs.luajitPackages.lpeg
     pkgs.nodejs
-    ipywidgets
+    # ipywidgets
+    # widgetsnbextension
+    # jupyterlab-widgets
+    # ipydatawidgets
+    # numpy pandas
+    # matplotlib plotly dash
   ] ++ kernels ;
 
 
+# labextensions
+# ${pkgs.lib.concatMapStrings
+#      (s: "jupyter labextension enable --no-build --app-dir=$TEMPDIR ${s}; ")
+#      (pkgs.lib.unique
+#        ((pkgs.lib.concatMap
+#            (d: pkgs.lib.attrByPath ["passthru" "jupyterlabExtensions"] [] d)
+#            buildInputs) ++ additionalExtensions))  }
+# jupyter lab build --app-dir=$TEMPDIR
   shellHook = ''
 
     mkdir -p $TEMPDIR
-    cp -r ${pkgs.python310Packages.jupyterlab}/share/jupyter/lab/* $TEMPDIR
+    cp -r ${jupyterlab}/share/jupyter/lab/* $TEMPDIR
     chmod -R 755 $TEMPDIR
     echo "$TEMPDIR is the app directory"
 
     # kernels
     export JUPYTER_PATH="${pkgs.lib.concatMapStringsSep ":" (p: "${p}/share/jupyter/") kernels}"
 
-# labextensions
-${pkgs.lib.concatMapStrings
-     (s: "jupyter labextension install --no-build --app-dir=$TEMPDIR ${s}; ")
-     (pkgs.lib.unique
-       ((pkgs.lib.concatMap
-           (d: pkgs.lib.attrByPath ["passthru" "jupyterlabExtensions"] [] d)
-           buildInputs)))  }
-jupyter lab build --app-dir=$TEMPDIR
 
 # start jupyterlab
 jupyter lab --app-dir=$TEMPDIR

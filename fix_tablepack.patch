@@ -1,0 +1,24 @@
+diff --git a/src/xdisplay.cpp b/src/xdisplay.cpp
+index 7aa62bf..6537c6f 100644
+--- a/src/xdisplay.cpp
++++ b/src/xdisplay.cpp
+@@ -83,6 +83,7 @@ void setup_display(
+ 
+     local display = ilua.display
+ 
++    function table.pack(...) return {n = select("#", ...), ...} end
+ 
+     function display.display(...)
+         args = table.pack(...)
+diff --git a/src/xio.cpp b/src/xio.cpp
+index 66d4201..5825143 100644
+--- a/src/xio.cpp
++++ b/src/xio.cpp
+@@ -606,6 +606,7 @@ void setup_io(
+ 
+     const std::string monkeypatch = R""""(
+         require "io"
++        function table.pack(...) return {n = select("#", ...), ...} end
+         ilua.detail.__io_read = io.read
+         ilua.detail.__io_write = io.write
+         ilua.detail.__io_flush = io.flush
